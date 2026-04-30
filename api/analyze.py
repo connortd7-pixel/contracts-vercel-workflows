@@ -2,13 +2,13 @@ from http.server import BaseHTTPRequestHandler
 import json
 import sys
 import os
-import uuid
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from core.supabase_client import fetch_file_bytes, save_diff_result
+from core.supabase_client import fetch_file_bytes
 from core.parser import parse_file
 from core.differ import compute_diff
+from core.analyzer import analyze_diff
 
 
 class handler(BaseHTTPRequestHandler):
@@ -19,8 +19,8 @@ class handler(BaseHTTPRequestHandler):
 
         try:
             payload = json.loads(body)
-            file_a_path = payload["file_a"]  # e.g. "contracts/v1.pdf"
-            file_b_path = payload["file_b"]  # e.g. "contracts/v2.docx"
+            file_a_path = payload["file_a"]
+            file_b_path = payload["file_b"]
 
             bytes_a = fetch_file_bytes(file_a_path)
             bytes_b = fetch_file_bytes(file_b_path)
@@ -31,24 +31,16 @@ class handler(BaseHTTPRequestHandler):
             lines_a = parse_file(bytes_a, ext_a)
             lines_b = parse_file(bytes_b, ext_b)
 
-            diff = compute_diff(lines_a, lines_b)
+            diff     = compute_diff(lines_a, lines_b)
+            analyses = analyze_diff(diff)
 
-            comparison_id = str(uuid.uuid4())
-
-            result = {
-                "status": "ok",
-                "comparison_id": comparison_id,
-                "file_a": file_a_path,
-                "file_b": file_b_path,
-                "lines": diff,
-            }
-
-            try:
-                save_diff_result(comparison_id, result)
-            except NotImplementedError:
-                pass  # Supabase table not configured yet; result is still returned
-
-            self._respond(200, result)
+            self._respond(200, {
+                "status":   "ok",
+                "file_a":   file_a_path,
+                "file_b":   file_b_path,
+                "lines":    diff,
+                "analyses": analyses,
+            })
 
         except KeyError as e:
             self._respond(400, {"error": f"Missing field: {e}"})
@@ -78,4 +70,4 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def log_message(self, format, *args):
-        pass  # Suppress default access logs; Vercel handles logging
+        pass

@@ -9,7 +9,9 @@ Supabase project:
 """
 
 import os
+import json
 import urllib.request
+import urllib.error
 
 # ---------------------------------------------------------------------------
 # CONFIG — replace placeholders with real values (or set as env vars)
@@ -40,8 +42,17 @@ def fetch_file_bytes(file_path: str) -> bytes:
         },
     )
 
-    with urllib.request.urlopen(req) as response:
-        return response.read()
+    try:
+        with urllib.request.urlopen(req, timeout=30) as response:
+            return response.read()
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            raise FileNotFoundError(f"File not found in Supabase Storage: {file_path}") from e
+        if e.code == 401:
+            raise PermissionError("Supabase authentication failed — check SUPABASE_KEY") from e
+        raise RuntimeError(f"Supabase Storage returned HTTP {e.code} for {file_path}") from e
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Could not reach Supabase at {SUPABASE_URL}: {e.reason}") from e
 
 
 def save_diff_result(result_key: str, diff_json: dict) -> None:

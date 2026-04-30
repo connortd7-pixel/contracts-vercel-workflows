@@ -7,7 +7,7 @@ Output schema per line:
     "status":       str,            # "unchanged" | "modified" | "added" | "removed"
     "before":       str | None,     # original line text  (None if added)
     "after":        str | None,     # revised line text   (None if removed)
-    "tokens": [                     # only present when status == "modified"
+    "tokens": [                     # non-empty only when status == "modified"
         { "text": str, "type": str }  # type: "unchanged" | "added" | "removed"
     ]
 }
