@@ -1,10 +1,7 @@
 {
   "version": 2,
   "functions": {
-    "api/compare.py": {
-      "maxDuration": 30
-    },
-    "api/analyze.py": {
+    "api/*.py": {
       "maxDuration": 60
     }
   }
