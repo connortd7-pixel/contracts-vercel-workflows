@@ -18,7 +18,7 @@ import urllib.error
 # ---------------------------------------------------------------------------
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://YOUR_PROJECT.supabase.co")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "YOUR_SERVICE_ROLE_KEY")
-BUCKET_NAME = os.environ.get("SUPABASE_BUCKET", "YOUR_BUCKET_NAME")
+BUCKET_NAME = os.environ.get("SUPABASE_BUCKET", "contract-documents")
 # ---------------------------------------------------------------------------
 
 
