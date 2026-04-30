@@ -55,6 +55,73 @@ def fetch_file_bytes(file_path: str) -> bytes:
         raise RuntimeError(f"Could not reach Supabase at {SUPABASE_URL}: {e.reason}") from e
 
 
+def save_analysis_result(
+    contract_id: str,
+    version_a_id: str,
+    version_b_id: str,
+    analysis: dict,
+) -> None:
+    """
+    Persist a contract analysis result to the `contract_analyses` Supabase table.
+
+    -- SQL: run once in your Supabase project to create the table:
+    --
+    -- CREATE TABLE contract_analyses (
+    --   id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+    --   contract_id    uuid        NOT NULL REFERENCES contracts(id),
+    --   version_a_id   uuid        NOT NULL REFERENCES versions(id),
+    --   version_b_id   uuid        NOT NULL REFERENCES versions(id),
+    --   changes        jsonb       NOT NULL,
+    --   overview       text        NOT NULL,
+    --   consideration  jsonb       NOT NULL,
+    --   gaps           jsonb       NOT NULL,
+    --   created_at     timestamptz NOT NULL DEFAULT now()
+    -- );
+
+    Args:
+        contract_id:   UUID of the parent contract.
+        version_a_id:  UUID of Version A.
+        version_b_id:  UUID of Version B.
+        analysis:      Dict with keys changes, overview, consideration, gaps.
+    """
+    url = f"{SUPABASE_URL}/rest/v1/contract_analyses"
+    payload = json.dumps({
+        "contract_id":   contract_id,
+        "version_a_id":  version_a_id,
+        "version_b_id":  version_b_id,
+        "changes":       analysis["changes"],
+        "overview":      analysis["overview"],
+        "consideration": analysis["consideration"],
+        "gaps":          analysis["gaps"],
+    }).encode()
+
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        method="POST",
+        headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as response:
+            _ = response.read()
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            raise NotImplementedError(
+                "save_analysis_result: the `contract_analyses` table does not exist yet. "
+                "Run the CREATE TABLE statement in the function docstring inside your Supabase project."
+            ) from e
+        if e.code == 401:
+            raise PermissionError("Supabase authentication failed — check SUPABASE_KEY") from e
+        raise RuntimeError(f"Supabase returned HTTP {e.code} writing analysis") from e
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Could not reach Supabase at {SUPABASE_URL}: {e.reason}") from e
+
+
 def save_diff_result(result_key: str, diff_json: dict) -> None:
     """
     Persist the diff result to Supabase so the Lovable frontend can read it.

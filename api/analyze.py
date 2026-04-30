@@ -5,10 +5,9 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from core.supabase_client import fetch_file_bytes
+from core.supabase_client import fetch_file_bytes, save_analysis_result
 from core.parser import parse_file
-from core.differ import compute_diff
-from core.analyzer import analyze_diff
+from core.analyzer import analyze_contracts
 
 
 class handler(BaseHTTPRequestHandler):
@@ -19,8 +18,14 @@ class handler(BaseHTTPRequestHandler):
 
         try:
             payload = json.loads(body)
+
+            contract_id = payload["contract_id"]
+            version_a_id = payload["version_a_id"]
+            version_b_id = payload["version_b_id"]
             file_a_path = payload["file_a"]
             file_b_path = payload["file_b"]
+            version_a_attribution = payload.get("version_a_attribution", "company")
+            version_b_attribution = payload.get("version_b_attribution", "counterparty")
 
             bytes_a = fetch_file_bytes(file_a_path)
             bytes_b = fetch_file_bytes(file_b_path)
@@ -28,23 +33,32 @@ class handler(BaseHTTPRequestHandler):
             ext_a = file_a_path.rsplit(".", 1)[-1].lower()
             ext_b = file_b_path.rsplit(".", 1)[-1].lower()
 
-            lines_a = parse_file(bytes_a, ext_a)
-            lines_b = parse_file(bytes_b, ext_b)
+            text_a = "\n".join(parse_file(bytes_a, ext_a))
+            text_b = "\n".join(parse_file(bytes_b, ext_b))
 
-            diff     = compute_diff(lines_a, lines_b)
-            analyses = analyze_diff(diff)
+            analysis = analyze_contracts(
+                text_a,
+                text_b,
+                version_a_attribution=version_a_attribution,
+                version_b_attribution=version_b_attribution,
+            )
+
+            try:
+                save_analysis_result(contract_id, version_a_id, version_b_id, analysis)
+            except NotImplementedError:
+                pass  # Table not configured yet; result is still returned
 
             self._respond(200, {
-                "status":   "ok",
-                "file_a":   file_a_path,
-                "file_b":   file_b_path,
-                "lines":    diff,
-                "analyses": analyses,
+                "status": "ok",
+                "contract_id": contract_id,
+                "version_a_id": version_a_id,
+                "version_b_id": version_b_id,
+                "analysis": analysis,
             })
 
         except KeyError as e:
             self._respond(400, {"error": f"Missing field: {e}"})
-        except ValueError as e:
+        except (ValueError, json.JSONDecodeError) as e:
             self._respond(400, {"error": str(e)})
         except FileNotFoundError as e:
             self._respond(404, {"error": str(e)})
