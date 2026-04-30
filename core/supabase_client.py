@@ -46,11 +46,24 @@ def fetch_file_bytes(file_path: str) -> bytes:
         with urllib.request.urlopen(req, timeout=30) as response:
             return response.read()
     except urllib.error.HTTPError as e:
+        body = ""
+        try:
+            body = e.read().decode("utf-8", errors="replace")
+        except Exception:
+            pass
         if e.code == 404:
             raise FileNotFoundError(f"File not found in Supabase Storage: {file_path}") from e
         if e.code == 401:
             raise PermissionError("Supabase authentication failed — check SUPABASE_KEY") from e
-        raise RuntimeError(f"Supabase Storage returned HTTP {e.code} for {file_path}") from e
+        if e.code == 400:
+            raise RuntimeError(
+                f"Supabase Storage rejected the request (HTTP 400) — bucket name is likely wrong. "
+                f"SUPABASE_BUCKET='{BUCKET_NAME}', path='{file_path}'. "
+                f"Supabase says: {body}"
+            ) from e
+        raise RuntimeError(
+            f"Supabase Storage returned HTTP {e.code} for {file_path}. Supabase says: {body}"
+        ) from e
     except urllib.error.URLError as e:
         raise RuntimeError(f"Could not reach Supabase at {SUPABASE_URL}: {e.reason}") from e
 
