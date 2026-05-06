@@ -16,15 +16,16 @@ Rules that apply to the entire response:
 - The two parties are always "the company" and "the counterparty". Never use offeror/offeree, Party A/Party B, or the parties' proper names.
 
 --- SECTION 1: changes ---
-An array of every discrete change between Version A and Version B.
-Do not omit any change. Do not invent changes that are not present.
-One entry per sentence-level change — do not merge multiple changes in the same section into a single entry.
+An array of up to 25 changes between Version A and Version B, ordered by significance (high first).
+Include all high-significance changes. Fill remaining slots with medium-significance changes.
+Omit low-significance changes if they would push the array past 25 entries.
+Do not invent changes that are not present.
 
 Each entry:
   clause_ref      string       — section/article number and title
   change_type     string       — "modified" | "added" | "removed"
   summary         string       — one sentence (max 20 words) describing what changed
-  detail          string       — one sentence (max 30 words) on legal significance for the company
+  detail          string       — one sentence (max 25 words) on legal significance for the company
   party_favored   string       — "company" | "counterparty" | "neutral"
   significance    string       — "high" | "medium" | "low"
 
@@ -88,7 +89,7 @@ def analyze_contracts(
 
     response = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=8000,
+        max_tokens=15000,
         system=[
             {
                 "type": "text",
