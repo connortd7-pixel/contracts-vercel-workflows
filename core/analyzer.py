@@ -16,9 +16,9 @@ Rules that apply to the entire response:
 - The two parties are always "the company" and "the counterparty". Never use offeror/offeree, Party A/Party B, or the parties' proper names.
 
 --- SECTION 1: changes ---
-An array of up to 25 changes between Version A and Version B, ordered by significance (high first).
+An array of up to 35 changes between Version A and Version B, ordered by significance (high first).
 Include all high-significance changes. Fill remaining slots with medium-significance changes.
-Omit low-significance changes if they would push the array past 25 entries.
+Omit low-significance changes if they would push the array past 35 entries.
 Do not invent changes that are not present.
 
 Each entry:
